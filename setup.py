@@ -11,6 +11,8 @@ with open('README.rst', 'r') as f:
 with open(join(dirname(__file__), 'arachnid/VERSION'), 'r') as f:
     version = f.read().strip()
 
+with open('HISTORY.rst', 'r') as f:
+    history = f.read()
 
 setup(
     name='arachnid',
@@ -21,7 +23,7 @@ setup(
     maintainer_email='narzeja@gmail.com',
     license='BSD',
     description="Async Web Crawling and Scraping",
-    long_description=readme,
+    long_description=readme +'\n\n' + history,
     packages=find_packages(exclude=('tests', 'tests.*')),
     package_dir={'arachnid': 'arachnid'},
     package_data={'': ['LICENSE'], 'arachnid': ['VERSION']},
