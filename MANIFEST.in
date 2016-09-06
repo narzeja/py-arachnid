@@ -1,0 +1,6 @@
+include README.rst
+include requirements.txt
+include LICENSE
+include MANIFEST.in
+include arachnid/VERSION
+prune docs/build

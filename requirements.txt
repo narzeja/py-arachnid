@@ -1,0 +1,5 @@
+aiohttp==0.21.6
+click==6.6
+lxml==3.6.4
+six==1.10.0
+parsel==1.0.2
