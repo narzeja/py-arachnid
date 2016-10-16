@@ -15,6 +15,9 @@ The Example
 ===========
 Here's a shitty example.
 
+.. code-block:: bash
+   pip install .
+
 .. code-block:: python
 
  from arachnid import spider
@@ -34,6 +37,11 @@ Here's a shitty example.
      def another(self, response):
          self.logger.info('Inside ANOTHER')
          yield {'test': 'asd'}
+
+Save as myspider.py
+
+.. code-block:: bash
+   arachnid crawler myspider.py
 
 
 Features

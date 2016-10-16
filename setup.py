@@ -29,7 +29,7 @@ setup(
     package_data={'': ['LICENSE'], 'arachnid': ['VERSION']},
     include_package_data=True,
     entry_points={
-        'console_scripts': ['crawl = arachnid.cli:cli'],
+        'console_scripts': ['arachnid = arachnid.cli:cli'],
     },
     install_requires=requirements,
     classifiers=[
