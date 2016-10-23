@@ -94,17 +94,17 @@ class Engine:
         # self.pipelinemanager.close_spider(spider)
         spider.close_spider(reason='shutdown')
 
-    async def get_response(self, task):
-        aioresponse = await aiohttp.request('GET', task.url)
-        content_type = aioresponse.headers['content-type']
-        if 'text/html' in content_type:
-            body = await aioresponse.read()
+    # async def get_response(self, task):
+    #     aioresponse = await aiohttp.request('GET', task.url)
+    #     content_type = aioresponse.headers['content-type']
+    #     if 'text/html' in content_type:
+    #         body = await aioresponse.read()
 
-            response = Response(aioresponse.url,
-                                aioresponse.status,
-                                aioresponse.headers,
-                                body=body,
-                                request = task)
+    #         response = Response(aioresponse.url,
+    #                             aioresponse.status,
+    #                             aioresponse.headers,
+    #                             body=body,
+    #                             request = task)
 
     # @asyncio.coroutine
     async def fetch(self, task, logger, spider):

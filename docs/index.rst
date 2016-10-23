@@ -16,7 +16,10 @@ The Example
 Here's a shitty example.
 
 .. code-block:: bash
-   pip install .
+
+ pip install .
+
+Some code:
 
 .. code-block:: python
 
@@ -41,7 +44,8 @@ Here's a shitty example.
 Save as myspider.py
 
 .. code-block:: bash
-   arachnid crawler myspider.py
+
+ arachnid crawler myspider.py
 
 
 Features
