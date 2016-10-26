@@ -8,7 +8,7 @@ with open(join(dirname(__file__), 'requirements.txt'), 'r') as fd:
 with open('README.rst', 'r') as f:
     readme = f.read()
 
-with open(join(dirname(__file__), 'arachnid/VERSION'), 'r') as f:
+with open(join(dirname(__file__), 'VERSION'), 'r') as f:
     version = f.read().strip()
 
 with open('HISTORY.rst', 'r') as f:
@@ -24,9 +24,9 @@ setup(
     license='BSD',
     description="Async Web Crawling and Scraping",
     long_description=readme +'\n\n' + history,
-    packages=find_packages(exclude=('tests', 'tests.*')),
-    package_dir={'arachnid': 'arachnid'},
-    package_data={'': ['LICENSE'], 'arachnid': ['VERSION']},
+    packages=find_packages('src', exclude=('tests', 'tests.*')),
+    package_dir={'': 'src'},
+    package_data={'': ['LICENSE'], '': ['VERSION']},
     include_package_data=True,
     entry_points={
         'console_scripts': ['arachnid = arachnid.cli:cli'],

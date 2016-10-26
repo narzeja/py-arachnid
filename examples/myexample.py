@@ -4,6 +4,12 @@ Implements a basic scraper that opens Hacker News and yield the titles of the sc
 import arachnid
 
 
+class JSONSaver:
+    def process_item(self, item, spider):
+        print(item)
+        return item
+
+
 class MyExample(arachnid.Spider):
     start_urls = ['http://news.ycombinator.com/']
     name = 'MyExample'

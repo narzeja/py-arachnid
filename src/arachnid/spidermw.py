@@ -32,7 +32,7 @@ This method is called with the results returned from the Spider, after it has pr
     name = 'spider middleware'
 
     def _add_middleware(self, mw):
-        super()._add_middleware(self, mw)
+        super()._add_middleware(mw)
         if hasattr(mw, 'process_spider_input'):
             self.methods['process_spider_input'].append(mw.process_spider_input)
         if hasattr(mw, 'process_spider_output'):
@@ -40,30 +40,26 @@ This method is called with the results returned from the Spider, after it has pr
         if hasattr(mw, 'process_spider_exception'):
             self.methods['process_spider_exception'].insert(0, mw.process_spider_exception)
 
-    @asyncio.coroutine
-    def scrape_response(self, scrape_func, response, request, logger, spider):
+    async def scrape_response(self, scrape_func, response, request, logger, spider):
         logger.debug("Handling response: {} (code: {}, from: {})".format(response.url, response.status, spider.name))
 
-        @asyncio.coroutine
-        def process_spider_input(response):
+        async def process_spider_input(response):
             for method in self.methods['process_spider_input']:
                 result = method(response=response, spider=spider)
                 assert result is None, \
                     'Middleware {}.process_spider_input must returns None or raise an exception, got {} '.format(
                         method.__class__.__name__, type(result))
-            yield from scrape_func(response)
+            return scrape_func(response)
 
-        @asyncio.coroutine
-        def process_spider_output(result):
+        async def process_spider_output(result):
             for method in self.methods['process_spider_output']:
                 result = method(response=response, result=result, spider=spider)
                 assert _isiterable(result), \
                     'Middleware {}.process_spider_output must returns an iterable object, got {} '.format(
                         method.__class__.__name__, type(result))
-            yield result
+            return result
 
-        @asyncio.coroutine
-        def process_spider_exception(_failure):
+        async def process_spider_exception(_failure):
             exception = _failure.value
             for method in self.methods['process_spider_exception']:
                 result = method(response=response, exception=exception, spider=spider)
@@ -74,8 +70,7 @@ This method is called with the results returned from the Spider, after it has pr
                     return result
             return _failure
 
-        # def process_spider_exception(response):
-        #     return
-
-        for i in process_spider_input(response):
-            yield from process_spider_output(i)
+        results = []
+        for i in await process_spider_input(response):
+            results.append(await process_spider_output(i))
+        return results

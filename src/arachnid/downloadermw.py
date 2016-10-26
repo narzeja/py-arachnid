@@ -45,7 +45,7 @@ This method is called for each response that is returned from the Downloader, af
     name = 'downloader middleware'
 
     def _add_middleware(self, mw):
-        super()._add_middleware(self, mw)
+        super()._add_middleware(mw)
         if hasattr(mw, 'process_request'):
             self.methods['process_request'].append(mw.process_request)
         if hasattr(mw, 'process_response'):

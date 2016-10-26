@@ -18,12 +18,13 @@ This method is called for each result produced by the spider.
 
     name = 'pipeline middleware'
     def _add_middleware(self, pipe):
-        super()._add_middleware(self, pipe)
+        super()._add_middleware(pipe)
         if hasattr(pipe, 'process_item'):
             self.methods['process_item'].append(pipe.process_item)
 
     async def process_item(self, item, logger, spider):
         logger.debug("Handling item: {} (from: {})".format(item, spider.name))
+
         async def process_chain(item):
             for method in self.methods['process_item']:
                 item = method(item=item, spider=spider)

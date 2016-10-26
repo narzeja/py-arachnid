@@ -4,8 +4,8 @@ engine = {'executers': 5}
 
 
 spiders = [
-    {'spider': 'myexample.py',
+    {'spider': 'myexample.MyExample',
      'spider_middleware': [],
      'downloader_middleware': [],
-     'result_middleware': []}
+     'result_middleware': ['myexample.JSONSaver']}
 ]

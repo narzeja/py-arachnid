@@ -1,5 +1,6 @@
 ''' Engine module
 '''
+import uvloop
 import aiohttp
 import asyncio
 import logging
@@ -11,7 +12,7 @@ from . import downloadermw
 from . import spidermw
 from . import pipeline
 from . import defaultconfig
-
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 class Engine:
@@ -24,9 +25,6 @@ class Engine:
         self.running = False
 
         self.logger = self.getLogger()
-        # self.dlmwmanager = downloadermw.DownloaderMiddlewareManager()
-        # self.spidermanager = spidermw.SpiderMiddlewareManager()
-        # self.pipelinemanager = pipeline.PipelineManager()
 
     @classmethod
     def from_settings(cls, settings):
@@ -38,7 +36,7 @@ class Engine:
         self.running = True
         self.loop = asyncio.get_event_loop()
         try:
-            self.loop.run_until_complete(asyncio.Task(self.work()))
+            self.loop.run_until_complete(self.work())
         except KeyboardInterrupt:
             print("User interrupted")
         self.loop.close()
@@ -74,7 +72,7 @@ class Engine:
                 'pipelinemanager': pipeline.PipelineManager()
             }
             self.open_spider(spider)
-
+        return spider
 
     def unregister_spiders(self):
         for spider_name, spider in self.spiders.items():
@@ -89,42 +87,15 @@ class Engine:
         self.spiders[spider.name]['dlmwmanager'].close_spider(spider)
         self.spiders[spider.name]['spidermwmanager'].close_spider(spider)
         self.spiders[spider.name]['pipelinemanager'].close_spider(spider)
-        # self.dlmwmanager.close_spider(spider)
-        # self.spidermanager.close_spider(spider)
-        # self.pipelinemanager.close_spider(spider)
         spider.close_spider(reason='shutdown')
 
-    # async def get_response(self, task):
-    #     aioresponse = await aiohttp.request('GET', task.url)
-    #     content_type = aioresponse.headers['content-type']
-    #     if 'text/html' in content_type:
-    #         body = await aioresponse.read()
-
-    #         response = Response(aioresponse.url,
-    #                             aioresponse.status,
-    #                             aioresponse.headers,
-    #                             body=body,
-    #                             request = task)
-
-    # @asyncio.coroutine
     async def fetch(self, task, logger, spider):
         self.seen_urls.add(task.url)
-
-        # Manage PRE-request here
-        # process REQUEST
-        # if 'duckduckgo' in task.url:
-        #     logger.info("Sleeping for: {} ({} seconds)".format(task.url, 10))
-        #     await asyncio.sleep(10)
-        #     logger.info("Done sleeping for: {}".format(task.url))
 
         response = await aiohttp.request('GET', task.url)
         content_type = response.headers['content-type']
         response.body = await response.read()
-        # response = yield from aiohttp.request('GET', task.url)
-        # response.body = yield from response.read()
 
-        # Manage Pre-Parse response here
-        # process spider INPUT
         logger.debug("Got a response: %s (code: %s)" % \
                      (response.url, response.status))
         response.close()
@@ -136,7 +107,6 @@ class Engine:
 
         return response
 
-    # @asyncio.coroutine
     async def handle_task(self, executer_name):
         logger = self.logger.getChild(executer_name)
         if hasattr(self.settings, 'log_level'):
@@ -146,9 +116,9 @@ class Engine:
         while True:
             request = await self.queue.get()
             spider = request.callback.__self__
-            logger.debug("Got a task: %s (callback: %s.%s)" % (request.url,
-                                                               request.callback.__self__.name,
-                                                               request.callback.__name__))
+            logger.info("Got a task: %s (callback: %s.%s)" % (request.url,
+                                                              request.callback.__self__.name,
+                                                              request.callback.__name__))
 
             response = await self.spiders[spider.name]['dlmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
             if isinstance(response, Request):
@@ -158,7 +128,11 @@ class Engine:
                 self.logger.error(response)
                 continue
 
-            results_iter = self.spiders[spider.name]['spidermwmanager'].scrape_response(request.callback, response, request, logger.getChild('SpiderMW'), spider)
+            results_iter = await self.spiders[spider.name]['spidermwmanager'].scrape_response(request.callback, response, request, logger.getChild('SpiderMW'), spider)
+
+            if not self.spiders[spider.name]['pipelinemanager'].methods['process_item']:
+                logger.warning("You have no result pipeline, results will be discarded")
+
             for result in results_iter:
                 if isinstance(result, Request):
                     self.queue.put_nowait(result)
@@ -167,27 +141,8 @@ class Engine:
 
             self.queue.task_done()
 
-    # @asyncio.coroutine
-    # def work(self):
-    #     # bootstrap initial tasks
-    #     for spider_name, spider in self.spiders.items():
-    #         spider_inst = spider['spider']
-    #         [self.queue.put_nowait(Request(url, spider_inst.parse)) for url in spider_inst.start_urls]
-
-    #     num_executers = 3
-    #     executers = [asyncio.Task(self.handle_task('exec' + str(num)))
-    #                  for num in range(num_executers)]
-
-    #     self.logger.info("Started {} executers".format(len(executers)))
-
-    #     yield from self.queue.join()
-    #     for w in executers:
-    #         w.cancel()
-
-    #     self.unregister_spiders()
-
     async def work(self):
-        # bootstrap initial tasks
+        # bootstrap and run executers
         for spider_name, spider in self.spiders.items():
             spider_inst = spider['spider']
             [self.queue.put_nowait(Request(url, spider_inst.parse)) for url in spider_inst.start_urls]
