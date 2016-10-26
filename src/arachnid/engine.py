@@ -28,6 +28,7 @@ class Engine:
 
     @classmethod
     def from_settings(cls, settings):
+        # TODO: do some stuff with loading middleware, spiders, and shit here.
         obj = cls(settings)
         return obj
 
