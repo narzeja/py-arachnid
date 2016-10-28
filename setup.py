@@ -5,6 +5,9 @@ from os.path import join, dirname
 with open(join(dirname(__file__), 'requirements.txt'), 'r') as fd:
     requirements = fd.read().split('\n')
 
+with open(join(dirname(__file__), 'requirements-dev.txt'), 'r') as fd:
+    dev_requirements = fd.read().split('\n')
+
 with open('README.rst', 'r') as f:
     readme = f.read()
 
@@ -32,6 +35,7 @@ setup(
         'console_scripts': ['arachnid = arachnid.cli:cli'],
     },
     install_requires=requirements,
+    extras_require={'develop': dev_requirements},
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',

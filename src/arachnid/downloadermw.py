@@ -19,27 +19,38 @@ def _isiterable(possible_iterator):
 
 
 class DownloaderMiddlewareManager(middleware.MiddlewareManager):
-    """ DownloaderMiddlewareManager.
-Responsibilities:
-* Execute all middlewares that operate on outgoing Requests.
-* Download the target URL
-* Execute all middlewares that operate on Incoming Responses.
+    """
+    Responsibilities:
 
-process_request:
-This method is called for each request that goes through the download middleware.
+    * Execute all middlewares that operate on outgoing Requests.
+    * Download the target URL
+    * Execute all middlewares that operate on Incoming Responses.
 
- * Run middleware on outgoing Request, return either None, Response or Request
- * If Response, return response and execute no more middleware
- * If Request, return request and execute no more middleware. Request should be put back in task-queue for later execution
- * If None, continue running download_func on the now maybe manipulated Request
+.. method:: process_request(requests, spider)
 
-process_response:
-This method is called for each response that is returned from the Downloader, after having processed the request.
+    This method is called for each request that goes through the download middleware.
+    Run middleware on outgoing Request, return either ``None``, Response, Request, or raise IgnoreRequest
 
- * Run middleware on incoming Response, return either Response or Request
- * If Response, continue running middlewares
- * If Request, abort running more middlewares and return the Request. Request should be put back in task-queue for later execution
- * If only Reponses are returned from middlewares, it will be passed on to the scraper function (handled by SpiderMiddlewareManager)
+    * If Response, return response and execute no more middleware
+    * If Request, return request and execute no more middleware. Request should be put back in task-queue for later execution
+    * If ``None``, continue running download_func on the now maybe manipulated Request
+    * If raise IgnoreRequest, the process_exception handler is invoked, and no further response/request processing is done
+
+
+.. method:: process_response(request, response, spider)
+
+    This method is called for each response that is returned from the Downloader, after having processed the request.
+    Run middleware on incoming Response, return either :class:`~arachnid.response.Response` or :class:`~arachnid.request.Request`.
+
+    * If :class:`~arachnid.response.Response`, continue running middlewares
+    * If :class:`~arachnid.request.Request`, abort running more middlewares and return the Request. Request should be put back in task-queue for later execution
+    * If only Reponses are returned from middlewares, it will be passed on to the scraper function (handled by SpiderMiddlewareManager)
+
+
+.. method:: process_exception(request, exception, spider)
+
+    This method is called when exceptions occur in :meth:`process_request` and :meth:`
+    process_response`.
 
 """
     name = 'downloader middleware'
@@ -63,6 +74,7 @@ This method is called for each response that is returned from the Downloader, af
 
                 if response:
                     return response
+
             resp = await download_func(request, logger, spider)
             return resp
 
@@ -82,9 +94,9 @@ This method is called for each response that is returned from the Downloader, af
             return response
 
         async def process_exception(_failure):
-            exception = _failure.value
-            for method in self.methods['process_spider_exception']:
-                result = method(response=response, exception=exception, spider=spider)
+            exception = _failure
+            for method in self.methods['process_exception']:
+                result = method(request=request, exception=exception, spider=spider)
                 assert result is None or _isiterable(result), \
                     'Middleware {} must returns None, or an iterable object, got {}'.format(
                         method.__class__.__name__, type(result))
@@ -94,9 +106,8 @@ This method is called for each response that is returned from the Downloader, af
 
         try:
             resp = await process_request(request)
-            if resp is not None:
-                resp = await process_response(resp)
+            resp = await process_response(resp)
         except Exception as exc:
-            return process_exception(exc)
+            return await process_exception(exc)
         else:
             return resp

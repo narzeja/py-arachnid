@@ -3,4 +3,6 @@ click==6.6
 lxml==3.6.4
 six==1.10.0
 parsel==1.0.2
-uvloop==0.5.4
+uvloop
+pytest
+tox

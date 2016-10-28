@@ -60,7 +60,7 @@ This method is called with the results returned from the Spider, after it has pr
             return result
 
         async def process_spider_exception(_failure):
-            exception = _failure.value
+            exception = _failure
             for method in self.methods['process_spider_exception']:
                 result = method(response=response, exception=exception, spider=spider)
                 assert result is None or _isiterable(result), \
@@ -71,6 +71,9 @@ This method is called with the results returned from the Spider, after it has pr
             return _failure
 
         results = []
-        for i in await process_spider_input(response):
-            results.append(await process_spider_output(i))
+        try:
+            for i in await process_spider_input(response):
+                results.append(await process_spider_output(i))
+        except Exception as exc:
+            results = await process_spider_exception(exc)
         return results

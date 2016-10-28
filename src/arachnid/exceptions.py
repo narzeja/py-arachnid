@@ -1,0 +1,4 @@
+
+
+class IgnoreRequest(Exception):
+    pass

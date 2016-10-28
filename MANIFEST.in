@@ -1,7 +1,8 @@
 include README.rst
 include requirements.txt
+include requirements-dev.txt
 include LICENSE
 include HISTORY.rst
 include MANIFEST.in
-include arachnid/VERSION
+include VERSION
 prune docs/build

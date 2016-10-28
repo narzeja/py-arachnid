@@ -125,7 +125,10 @@ class Engine:
             if isinstance(response, Request):
                 self.queue.put_nowait(response)
                 continue
-            if isinstance(response, Exception):
+            if isinstance(response, IgnoreRequest):
+                self.logger.debug("Downloader told us to ignore the request")
+                continue
+            elif isinstance(response, Exception):
                 self.logger.error(response)
                 continue
 
