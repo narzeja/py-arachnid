@@ -79,7 +79,7 @@ Features
 
 TODO
 ====
-* Find another module for performing http requests. Aiohttp.client is fine but does not support Socks. Requests itself is excellent but is not asynchronous. Make a fork of Requests and rewrite to async?
+* Find another module for performing http requests. Aiohttp.client is fine but does not support Socks. Requests itself is excellent but is not asynchronous. Make a fork of Requests and rewrite to async? Maybe `aiosocks <https://github.com/nibrag/aiosocks>`_?
 * Provide an option to plug in different http request libraries. Kind of follows the above.
 * Binary data (images/videos/etc.) downloading. Figure out a clean way to handle that, so it doesn't get wrapped in an HTML Response object (with Parsel selectors enabled and all).
 * Make a default result middleware to save collected results to disk?
@@ -87,12 +87,14 @@ TODO
 
 
 Contents:
+=========
 
 .. toctree::
    :maxdepth: 2
 
 
 API:
+----
 
 .. toctree::
    :maxdepth: 2
