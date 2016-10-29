@@ -9,23 +9,30 @@ def _isiterable(maybe_iter):
 
 
 class SpiderMiddlewareManager(middleware.MiddlewareManager):
-    """ SpiderMiddlewareManager.
-Responsibilities:
- * Execute all middlewares that operate on Responses (input to Spider)
- * Execute all middlewares that operate on Incoming Results/Requests (output from Spider).
+    """
+    Responsibilities:
 
-process_spider_input:
-This method is called for each response that goes through the spider middleware and into the spider, for processing.
+    * Execute all middlewares that operate on Responses (input to Spider)
+    * Execute all middlewares that operate on Incoming Results/Requests (output from Spider).
 
- * Run middlewares on responses sent to Spiders
- * Returns either None or raises an exception
+.. method:: process_spider_input(response)
+
+    This method is called for each response that goes through the spider middleware and into the spider, for processing.
+
+    * Run middlewares on responses sent to Spiders
+    * Returns either None or raises an exception
 
 
-process_spider_output:
-This method is called with the results returned from the Spider, after it has processed the response.
+.. method:: process_spider_output(result)
 
- * Run middlewares on results produced by Spider
- * Must return an iterable of Request or dict (iterable may yield both)
+    This method is called with the results returned from the Spider, after it has processed the response.
+
+    * Run middlewares on results produced by Spider
+    * Must return an iterable of Request or dict (iterable may yield both)
+
+.. method:: process_spider_exception(failure)
+
+    ...
 
 """
 

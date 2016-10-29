@@ -10,7 +10,7 @@ from .response import Response
 from .request import Request
 from . import downloadermw
 from . import spidermw
-from . import pipeline
+from . import resultmw
 from . import defaultconfig
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -68,9 +68,9 @@ class Engine:
             spider = spider(logger=logger)
             self.spiders[spider.name] = {
                 'spider': spider,
-                'dlmwmanager': downloadermw.DownloaderMiddlewareManager(),
+                'downloadmwmanager': downloadermw.DownloaderMiddlewareManager(),
                 'spidermwmanager': spidermw.SpiderMiddlewareManager(),
-                'pipelinemanager': pipeline.PipelineManager()
+                'resultmwmanager': resultmw.ResultMiddlewareManager()
             }
             self.open_spider(spider)
         return spider
@@ -80,14 +80,14 @@ class Engine:
             self.close_spider(spider['spider'])
 
     def open_spider(self, spider):
-        self.spiders[spider.name]['dlmwmanager'].open_spider(spider)
+        self.spiders[spider.name]['downloadmwmanager'].open_spider(spider)
         self.spiders[spider.name]['spidermwmanager'].open_spider(spider)
-        self.spiders[spider.name]['pipelinemanager'].open_spider(spider)
+        self.spiders[spider.name]['resultmwmanager'].open_spider(spider)
 
     def close_spider(self, spider):
-        self.spiders[spider.name]['dlmwmanager'].close_spider(spider)
+        self.spiders[spider.name]['downloadmwmanager'].close_spider(spider)
         self.spiders[spider.name]['spidermwmanager'].close_spider(spider)
-        self.spiders[spider.name]['pipelinemanager'].close_spider(spider)
+        self.spiders[spider.name]['resultmwmanager'].close_spider(spider)
         spider.close_spider(reason='shutdown')
 
     async def fetch(self, task, logger, spider):
@@ -121,7 +121,7 @@ class Engine:
                                                               request.callback.__self__.name,
                                                               request.callback.__name__))
 
-            response = await self.spiders[spider.name]['dlmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
+            response = await self.spiders[spider.name]['downloadmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
             if isinstance(response, Request):
                 self.queue.put_nowait(response)
                 continue
@@ -134,14 +134,14 @@ class Engine:
 
             results_iter = await self.spiders[spider.name]['spidermwmanager'].scrape_response(request.callback, response, request, logger.getChild('SpiderMW'), spider)
 
-            if not self.spiders[spider.name]['pipelinemanager'].methods['process_item']:
+            if not self.spiders[spider.name]['resultmwmanager'].methods['process_item']:
                 logger.warning("You have no result pipeline, results will be discarded")
 
             for result in results_iter:
                 if isinstance(result, Request):
                     self.queue.put_nowait(result)
                 else:
-                    res = await self.spiders[spider.name]['pipelinemanager'].process_item(result, logger.getChild('PipeLineMW'), spider)
+                    res = await self.spiders[spider.name]['resultmwmanager'].process_item(result, logger.getChild('ResultMW'), spider)
 
             self.queue.task_done()
 

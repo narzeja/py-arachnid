@@ -6,7 +6,7 @@
 Arachnid
 ========
 This project was used as a practical exercise in coroutines and asyncronous
-programming in Python. It uses primarily the async/await syntax introduced in
+programming in Python. It uses primarily the `async/await <https://www.python.org/dev/peps/pep-0492/>`_ syntax introduced in
 Python3.5.
 
 It is a modular web-crawling and web-scraping framework inspired by the `Scrapy

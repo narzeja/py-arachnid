@@ -1,7 +1,7 @@
 import pytest
 import uvloop
 import logging
-from arachnid import pipeline
+from arachnid import resultmw
 from arachnid import spider
 
 
@@ -31,7 +31,7 @@ def loop():
 
 
 def test_add_middleware(middleware):
-    manager = pipeline.PipelineManager()
+    manager = resultmw.ResultMiddlewareManager()
     manager._add_middleware(middleware)
     assert middleware.process_item in manager.methods['process_item']
 
@@ -41,13 +41,13 @@ def test_add_middleware_no_process():
         pass
 
     middleware = GenericMiddleware()
-    manager = pipeline.PipelineManager()
+    manager = resultmw.ResultMiddlewareManager()
     manager._add_middleware(middleware)
     assert not manager.methods['process_item']
 
 
 def test_middleware_simple_process_item(test_spider, middleware, loop, logger):
-    manager = pipeline.PipelineManager()
+    manager = resultmw.ResultMiddlewareManager()
     manager._add_middleware(middleware)
     result = {'result': 'dummy'}
     processed_result = loop.run_until_complete(manager.process_item(result, logger, test_spider))
@@ -61,7 +61,7 @@ def test_middleware_manipulate_process_item(test_spider, loop, logger):
             return item
 
     middleware = GenericMiddleware()
-    manager = pipeline.PipelineManager()
+    manager = resultmw.ResultMiddlewareManager()
     manager._add_middleware(middleware)
     result = {'result': 'dummy'}
     processed_result = loop.run_until_complete(manager.process_item(result, logger, test_spider))
@@ -74,7 +74,7 @@ def test_middleware_manipulate_process_item_no_return(test_spider, loop, logger)
             return
 
     middleware = GenericMiddleware()
-    manager = pipeline.PipelineManager()
+    manager = resultmw.ResultMiddlewareManager()
     manager._add_middleware(middleware)
     result = {'result': 'dummy'}
     processed_result = loop.run_until_complete(manager.process_item(result, logger, test_spider))

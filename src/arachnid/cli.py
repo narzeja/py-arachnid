@@ -54,7 +54,7 @@ def settings(filename, d):
 
             for mw in spider.get('result_middleware', []):
                 mw_obj = utils.load_module_obj(mw)
-                eng.spiders[registered.name]['pipelinemanager']._add_middleware(mw_obj())
+                eng.spiders[registered.name]['resultmwmanager']._add_middleware(mw_obj())
 
     eng.start()
 
