@@ -12,6 +12,7 @@ from . import downloadermw
 from . import spidermw
 from . import resultmw
 from . import defaultconfig
+from .exceptions import IgnoreRequest
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
@@ -105,7 +106,6 @@ class Engine:
                             response.headers,
                             body=response.body,
                             request=task)
-
         return response
 
     async def handle_task(self, executer_name):
@@ -123,12 +123,13 @@ class Engine:
 
             response = await self.spiders[spider.name]['downloadmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
             if isinstance(response, Request):
+                self.logger.debug("Got a request from downloader, putting in queue")
                 self.queue.put_nowait(response)
                 continue
             if isinstance(response, IgnoreRequest):
                 self.logger.debug("Downloader told us to ignore the request")
                 continue
-            elif isinstance(response, Exception):
+            if isinstance(response, Exception):
                 self.logger.error(response)
                 continue
 
