@@ -49,8 +49,7 @@ class DownloaderMiddlewareManager(middleware.MiddlewareManager):
 
 .. method:: process_exception(request, exception, spider)
 
-    This method is called when exceptions occur in :meth:`process_request` and :meth:`
-    process_response`.
+    This method is called when exceptions occur in :meth:`process_request` and :meth:`process_response`.
 
 """
     name = 'downloader middleware'
