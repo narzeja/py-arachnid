@@ -40,13 +40,13 @@ Save the file as `myexample.py`.
         start_urls = ['http://news.ycombinator.com/']
         name = 'HackerNews'
 
-    def parse(self, response):
-        articles = response.css('tr.athing, tr.athing+tr')
-        for idx in range(0, len(articles), 2):
-            title_elm  = articles[idx]
-            title = title_elm.css('.title a::text').extract_first()
-            meta_elm = articles[idx+1]
-            yield {'title': title}
+        def parse(self, response):
+            articles = response.css('tr.athing, tr.athing+tr')
+            for idx in range(0, len(articles), 2):
+                title_elm  = articles[idx]
+                title = title_elm.css('.title a::text').extract_first()
+                meta_elm = articles[idx+1]
+                yield {'title': title}
 
 
 Defining the configuration
@@ -83,7 +83,6 @@ TODO
 * Provide an option to plug in different http request libraries. Kind of follows the above.
 * Binary data (images/videos/etc.) downloading. Figure out a clean way to handle that, so it doesn't get wrapped in an HTML Response object (with Parsel selectors enabled and all).
 * Make a default result middleware to save collected results to disk?
-* Naming scheme for middlewares. It's inconsistent right now.
 
 
 Contents:

@@ -154,7 +154,7 @@ class Engine:
                 raise
             except BaseException as e:
                 self._exceptions = True
-                self.logger.exception('Worker call failed')
+                logger.exception('Worker call failed')
             finally:
                 if got_obj:
                     self.queue.task_done()
@@ -172,10 +172,12 @@ class Engine:
         self._workers = [asyncio.ensure_future(self.handle_task('exec' + str(num)))
                          for num in range(num_executers)]
 
-        self.logger.info("Started {} executers".format(len(self._workers)))
+        self.logger.info("Started %d executers" % len(self._workers))
 
         await self.queue.join()
+        self.logger.info("Closing %d executers" % len(self._workers))
         for w in self._workers:
             w.cancel()
 
+        self.logger.info("Closing spiders")
         self.unregister_spiders()
