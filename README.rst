@@ -4,9 +4,10 @@ This project was used as a practical exercise in coroutines and asyncronous
 programming in Python. It uses primarily the async/await syntax introduced in
 Python3.5.
 
-It is a modular web-crawling and web-scraping framework inspired by the Scrapy
-project. If you are here because you want to use a mature web scraping
-framework, I urge you to seek out Scrapy.
+It is a modular web-crawling and web-scraping framework inspired by the `Scrapy
+<https://scrapy.org/>`_ project. If you are here because you want to use a
+mature web scraping framework, I urge you to seek out `Scrapy
+<https://scrapy.org/>`_.
 
 
 The Example
@@ -62,6 +63,6 @@ Run `arachnid settings myexamplesettings.py`.
 
 Features
 ========
-* Built-in support for CSS/XPath data extraction using the .. _ Parsel: https://parsel.readthedocs.io library.
+* Built-in support for CSS/XPath data extraction using `Parsel <https://parsel.readthedocs.io>`_ library.
 * Extensibility support, allowing you to plug-in your own functionality with a well-defined API (pipelines, middlewares).
 * Ability to load multiple spiders with their own middleware.
