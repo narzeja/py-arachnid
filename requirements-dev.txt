@@ -1,8 +1,8 @@
-aiohttp==0.21.6
-click==6.6
-lxml==3.6.4
+aiohttp==1.2.0
+click==6.7
+lxml==3.7.1
 six==1.10.0
-parsel==1.0.2
-uvloop
-pytest
-tox
+parsel==1.1.0
+uvloop==0.7.2
+pytest==3.0.3
+tox==2.4.1
