@@ -73,7 +73,6 @@ class Engine:
                 'spidermwmanager': spidermw.SpiderMiddlewareManager(),
                 'resultmwmanager': resultmw.ResultMiddlewareManager()
             }
-            self.open_spider(spider)
         return spider
 
     def unregister_spiders(self):
@@ -98,8 +97,7 @@ class Engine:
         content_type = response.headers['content-type']
         response.body = await response.read()
 
-        logger.debug("Got a response: %s (code: %s)" % \
-                     (response.url, response.status))
+        logger.debug("Got a response: %s (code: %s)", response.url, response.status)
         response.close()
         response = Response(response.url,
                             response.status,
@@ -122,9 +120,9 @@ class Engine:
                 got_obj = True
 
                 spider = request.callback.__self__
-                logger.info("Got a task: %s (callback: %s.%s)" % (request.url,
-                                                                  request.callback.__self__.name,
-                                                                  request.callback.__name__))
+                callback_name = "%s.%s" % (spider.name,
+                                           request.callback.__name__)
+                logger.info("Got a task: %s (callback: %s)", request.url, callback_name)
 
                 response = await self.spiders[spider.name]['downloadmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
                 if isinstance(response, Request):
@@ -139,10 +137,14 @@ class Engine:
                     continue
 
                 results_iter = await self.spiders[spider.name]['spidermwmanager'].scrape_response(request.callback, response, request, logger.getChild('SpiderMW'), spider)
+                if isinstance(results_iter, Exception):
+                    self.logger.error(results_iter)
+                    continue
 
                 if not self.spiders[spider.name]['resultmwmanager'].methods['process_item']:
-                    logger.warning("You have no result pipeline, results will be discarded")
+                    self.logger.warning("You have no result pipeline, results will be discarded")
 
+                self.logger.info("Found %d results (from: %s)", len(results_iter), callback_name)
                 for result in results_iter:
                     if isinstance(result, Request):
                         self.queue.put_nowait(result)
@@ -164,6 +166,7 @@ class Engine:
         # bootstrap and run executers
         for spider_name, spider in self.spiders.items():
             spider_inst = spider['spider']
+            self.open_spider(spider_inst)
             for url in spider_inst.start_urls:
                 await self.queue.put(Request(url, spider_inst.parse))
 
@@ -172,10 +175,10 @@ class Engine:
         self._workers = [asyncio.ensure_future(self.handle_task('exec' + str(num)))
                          for num in range(num_executers)]
 
-        self.logger.info("Started %d executers" % len(self._workers))
+        self.logger.info("Started %d executers", len(self._workers))
 
         await self.queue.join()
-        self.logger.info("Closing %d executers" % len(self._workers))
+        self.logger.info("Closing %d executers", len(self._workers))
         for w in self._workers:
             w.cancel()
 
