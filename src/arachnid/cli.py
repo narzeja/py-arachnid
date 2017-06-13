@@ -25,37 +25,14 @@ def cli():
 @click.option('-d', is_flag=True, default=False)
 @click.argument('filename', type=click.Path(exists=True))
 def settings(filename, d):
-    # eng = engine.Engine()
     try:
         settings = utils.load_settings(filename)
         settings.log_level = 'DEBUG' if d else 'INFO'
         eng = engine.Engine.from_settings(settings)
     except ImportError as exc:
-        print(exc)
-        print('failed importing settings file')
+        click.echo(exc)
+        click.echo('failed importing settings file')
         raise
-
-    for spider in settings.spiders:
-        try:
-            module, _ = utils.load_module(spider['spider'])
-        except ImportError as exc:
-            print(exc)
-            print('failed importing spider')
-            raise
-        else:
-            spider_obj = utils.load_spider(module)
-            registered = eng.register_spider(spider_obj)
-            if not registered:
-                continue
-
-            for mw in spider.get('spider_middleware', []):
-                mw_obj = utils.load_module_obj(mw)
-                eng.spiders[registered.name]['spidermwmanager']._add_middleware(mw_obj())
-
-            for mw in spider.get('result_middleware', []):
-                mw_obj = utils.load_module_obj(mw)
-                eng.spiders[registered.name]['resultmwmanager']._add_middleware(mw_obj())
-
     eng.start()
 
 

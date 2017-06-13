@@ -12,6 +12,7 @@ from . import downloadermw
 from . import spidermw
 from . import resultmw
 from . import defaultconfig
+from . import utils
 from .exceptions import IgnoreRequest
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -29,8 +30,30 @@ class Engine:
 
     @classmethod
     def from_settings(cls, settings):
-        # TODO: do some stuff with loading middleware, spiders, and shit here.
         obj = cls(settings)
+
+        for spider in settings.spiders:
+            try:
+                module, _ = utils.load_module(spider['spider'])
+            except ImportError as exc:
+                obj.logger.error(exc)
+                obj.logger.error('failed importing spider')
+                raise
+            else:
+                spider_obj = utils.load_spider(module)
+                registered = obj.register_spider(spider_obj)
+                if not registered:
+                    obj.logger.warning("Failed registering spider: %s", module)
+                    continue
+
+                for mw in spider.get('spider_middleware', []):
+                    mw_obj = utils.load_module_obj(mw)
+                    obj.spiders[spider_obj.name]['spidermwmanager']._add_middleware(mw_obj())
+
+                for mw in spider.get('result_middleware', []):
+                    mw_obj = utils.load_module_obj(mw)
+                    obj.spiders[spider_obj.name]['resultmwmanager']._add_middleware(mw_obj())
+
         return obj
 
     def start(self):
@@ -40,7 +63,7 @@ class Engine:
         try:
             self.loop.run_until_complete(self.work())
         except KeyboardInterrupt:
-            print("User interrupted")
+            self.logger.error("User interrupted")
         self.loop.close()
 
     def stop(self):
@@ -106,51 +129,49 @@ class Engine:
                             request=task)
         return response
 
-    async def handle_task(self, executer_name):
+    async def distribute(self, task, logger):
+        spider = task.callback.__self__
+        callback_name = "%s.%s" % (spider.name,
+                                   task.callback.__name__)
+        logger.info("Got a task: %s (callback: %s)", task.url, callback_name)
+        response = await self.spiders[spider.name]['downloadmwmanager'].download(self.fetch, task, logger.getChild('DownloadMW'), spider)
+
+        if isinstance(response, Request):
+            self.logger.debug("Got a request from downloader, putting in queue")
+            self.queue.put_nowait(response)
+            return
+        if isinstance(response, IgnoreRequest):
+            self.logger.debug("Downloader told us to ignore the request")
+            return
+        if isinstance(response, Exception):
+            self.logger.error(response)
+            return
+
+        results_iter = await self.spiders[spider.name]['spidermwmanager'].scrape_response(task.callback, response, task, logger.getChild('SpiderMW'), spider)
+        if isinstance(results_iter, Exception):
+            self.logger.error(results_iter)
+            return
+
+        if not self.spiders[spider.name]['resultmwmanager'].methods['process_item']:
+            self.logger.warning("You have no result pipeline, results will be discarded")
+
+        self.logger.info("Found %d results (from: %s)", len(results_iter), callback_name)
+        for result in results_iter:
+            if isinstance(result, Request):
+                self.queue.put_nowait(result)
+            else:
+                res = await self.spiders[spider.name]['resultmwmanager'].process_item(result, logger.getChild('ResultMW'), spider)
+
+    async def consumer(self, executer_name):
         logger = self.logger.getChild(executer_name)
         if hasattr(self.settings, 'log_level'):
             if self.settings.log_level.lower() == 'debug':
                 logger.setLevel(logging.DEBUG)
 
         while True:
-            got_obj = False
-
+            request = await self.queue.get()
             try:
-                request = await self.queue.get()
-                got_obj = True
-
-                spider = request.callback.__self__
-                callback_name = "%s.%s" % (spider.name,
-                                           request.callback.__name__)
-                logger.info("Got a task: %s (callback: %s)", request.url, callback_name)
-
-                response = await self.spiders[spider.name]['downloadmwmanager'].download(self.fetch, request, logger.getChild('DownloadMW'), spider)
-                if isinstance(response, Request):
-                    self.logger.debug("Got a request from downloader, putting in queue")
-                    self.queue.put_nowait(response)
-                    continue
-                if isinstance(response, IgnoreRequest):
-                    self.logger.debug("Downloader told us to ignore the request")
-                    continue
-                if isinstance(response, Exception):
-                    self.logger.error(response)
-                    continue
-
-                results_iter = await self.spiders[spider.name]['spidermwmanager'].scrape_response(request.callback, response, request, logger.getChild('SpiderMW'), spider)
-                if isinstance(results_iter, Exception):
-                    self.logger.error(results_iter)
-                    continue
-
-                if not self.spiders[spider.name]['resultmwmanager'].methods['process_item']:
-                    self.logger.warning("You have no result pipeline, results will be discarded")
-
-                self.logger.info("Found %d results (from: %s)", len(results_iter), callback_name)
-                for result in results_iter:
-                    if isinstance(result, Request):
-                        self.queue.put_nowait(result)
-                    else:
-                        res = await self.spiders[spider.name]['resultmwmanager'].process_item(result, logger.getChild('ResultMW'), spider)
-
+                await self.distribute(request, logger)
             except (KeyboardInterrupt, MemoryError, SystemExit, asyncio.CancelledError) as e:
                 self._exceptions = True
                 raise
@@ -158,8 +179,7 @@ class Engine:
                 self._exceptions = True
                 logger.exception('Worker call failed')
             finally:
-                if got_obj:
-                    self.queue.task_done()
+                self.queue.task_done()
 
 
     async def work(self):
@@ -172,7 +192,7 @@ class Engine:
 
         num_executers = getattr(self.settings, 'engine', {'executers': 3}).get('executers', 3)
 
-        self._workers = [asyncio.ensure_future(self.handle_task('exec' + str(num)))
+        self._workers = [self.loop.create_task(self.consumer('exec' + str(num)))
                          for num in range(num_executers)]
 
         self.logger.info("Started %d executers", len(self._workers))
@@ -183,4 +203,4 @@ class Engine:
             w.cancel()
 
         self.logger.info("Closing spiders")
-        self.unregister_spiders()
+        self.stop()
