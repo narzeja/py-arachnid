@@ -173,11 +173,9 @@ class Engine:
             try:
                 await self.distribute(request, logger)
             except (KeyboardInterrupt, MemoryError, SystemExit, asyncio.CancelledError) as e:
-                self._exceptions = True
                 raise
             except BaseException as e:
-                self._exceptions = True
-                logger.exception('Worker call failed')
+                logger.exception('Task distribution failed')
             finally:
                 self.queue.task_done()
 
